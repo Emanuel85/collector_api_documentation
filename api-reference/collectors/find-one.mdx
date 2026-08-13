@@ -4,7 +4,11 @@ sidebarTitle: "FindOne"
 description: "Retorna un collector específico por su ID."
 ---
 
-**Endpoint:** `GET /collectors/:id`
+## Endpoint
+
+```http
+GET /collectors/:id
+```
 
 ## Descripción
 
@@ -13,16 +17,6 @@ Este endpoint devuelve **un collector específico** identificado por su `id`, in
 <Info>
   La estructura de un collector es la misma que devuelve [FindAll](/api-reference/collectors/get-collectors), pero como un único objeto en lugar de un arreglo.
 </Info>
-
-## Objetivo
-
-Obtener un álbum (collector) en específico.
-
-## Parámetros de ruta
-
-<ParamField path="id" type="number" required>
-  Identificador único del collector a consultar.
-</ParamField>
 
 ## Responsabilidades y alcance
 
@@ -39,6 +33,12 @@ Obtener un álbum (collector) en específico.
 **Puede modificar:** sin modificaciones (solo lectura).
 
 **Restricciones:** sin restricciones de acceso.
+
+## Parámetros de ruta
+
+<ParamField path="id" type="number" required>
+  Identificador único del collector a consultar.
+</ParamField>
 
 ## Respuestas
 
