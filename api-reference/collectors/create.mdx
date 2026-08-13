@@ -1,0 +1,238 @@
+---
+title: "Create"
+sidebarTitle: "Create"
+description: "Crea un nuevo collector (álbum) en el sistema."
+---
+
+**Endpoint:** `POST /collectors`
+
+## Descripción
+
+Este endpoint permite **crear un nuevo collector**, asociándolo a una o más categorías y, opcionalmente, definiendo un set personalizado de rarezas o utilizando las rarezas por defecto del sistema.
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Persiste un nuevo collector junto con sus categorías y rarezas (personalizadas o por defecto).
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No genera cartas ni contenido derivado del collector. Solo crea el registro base.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** crea un registro en `collectors` y sus relaciones con `categories` y `rarities`.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Cuerpo de la solicitud
+
+<ParamField body="name" type="string" required>
+  Nombre del collector. Máximo 40 caracteres.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Descripción del collector. Máximo 255 caracteres.
+</ParamField>
+
+<ParamField body="totalCards" type="number" required>
+  Cantidad total de cartas que compondrán el collector. Debe estar entre **5 y 100**.
+</ParamField>
+
+<ParamField body="imageUrl" type="string" required>
+  URL o nombre de archivo de la imagen representativa. Máximo 255 caracteres.
+</ParamField>
+
+<ParamField body="categories_id" type="number[]" required>
+  Arreglo de IDs de categorías a asociar. Debe contener al menos un elemento, todos mayores a cero y sin duplicados.
+</ParamField>
+
+<ParamField body="useDefaultRarities" type="boolean" required>
+  Indica si el collector usará las rarezas por defecto del sistema (`true`) o un set personalizado (`false`).
+</ParamField>
+
+<ParamField body="rarities" type="array">
+  Lista de rarezas personalizadas. **Obligatorio** cuando `useDefaultRarities` es `false`, **prohibido** cuando es `true`.
+
+  <Expandable title="Propiedades de cada rareza">
+    <ParamField body="name" type="string" required>
+      Nombre de la rareza.
+    </ParamField>
+
+    <ParamField body="color" type="string" required>
+      Color hexadecimal asociado.
+    </ParamField>
+
+    <ParamField body="dropRate" type="number" required>
+      Probabilidad de aparición (porcentaje).
+    </ParamField>
+
+    <ParamField body="sortOrder" type="number" required>
+      Orden de visualización.
+    </ParamField>
+
+    <ParamField body="isDefault" type="boolean" required>
+      Marca la rareza como valor por defecto.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "name": "Digimon",
+  "description": "Primera generación de Digimon",
+  "totalCards": 100,
+  "imageUrl": "digimon.png",
+  "categories_id": [1, 2],
+  "useDefaultRarities": false,
+  "rarities": [
+    {
+      "name": "Común",
+      "color": "#9E9E9E",
+      "dropRate": 60,
+      "sortOrder": 1,
+      "isDefault": true
+    },
+    {
+      "name": "Poco común",
+      "color": "#9E9E9E",
+      "dropRate": 25,
+      "sortOrder": 2,
+      "isDefault": true
+    },
+    {
+      "name": "Demasiado común",
+      "color": "#9E9E9E",
+      "dropRate": 15,
+      "sortOrder": 3,
+      "isDefault": true
+    }
+  ]
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  El collector se creó correctamente.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Datos mínimos del collector recién creado.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="id" type="number">
+      Identificador único asignado al nuevo collector.
+    </ResponseField>
+
+    <ResponseField name="name" type="string">
+      Nombre del collector creado.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "id": 22,
+    "name": "Digimones"
+  },
+  "message": "Collector created successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con alguna de las reglas de validación del servicio.
+</Warning>
+
+Mensajes posibles:
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector name is required` | Falta el campo `name`. |
+| `Collector name cannot exceed 40 characters` | `name` supera los 40 caracteres. |
+| `Collector description cannot exceed 255 characters` | `description` supera los 255 caracteres. |
+| `totalCards is required` | Falta el campo `totalCards`. |
+| `totalCards must be between 5 and 100` | `totalCards` fuera del rango permitido. |
+| `Collector imageUrl is required` | Falta el campo `imageUrl`. |
+| `Collector imageUrl cannot exceed 255 characters` | `imageUrl` supera los 255 caracteres. |
+| `At least one category is required` | `categories_id` vacío o ausente. |
+| `Category ids must be greater than zero` | Algún ID de categoría es `<= 0`. |
+| `Duplicate categories are not allowed` | Hay IDs de categoría repetidos. |
+| `useDefaultRarities is required` | Falta el campo `useDefaultRarities`. |
+| `Cannot send custom rarities when useDefaultRarities is TRUE` | Se enviaron rarezas personalizadas con `useDefaultRarities: true`. |
+| `Custom rarities are required when useDefaultRarities is FALSE` | Falta el arreglo `rarities` cuando `useDefaultRarities: false`. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "Collector name is required"
+}
+```
+
+### Recursos inexistentes
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — Alguno de los recursos referenciados en el payload no existe.
+</Warning>
+
+Mensajes posibles:
+
+| `message` | Motivo |
+| --- | --- |
+| `One or more categories do not exist` | Uno o más IDs de `categories_id` no existen en la base. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "One or more categories do not exist"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Nombres duplicados:** actualmente se permiten collectors con el mismo `name`. No se aplica restricción de unicidad sobre este campo.
+- **Rango de cartas:** `totalCards` debe estar entre **5 (mínimo)** y **100 (máximo)**, ambos inclusive.
+- **Rarezas:** los campos `rarities` y `useDefaultRarities` son mutuamente excluyentes. Enviar `rarities` con `useDefaultRarities: true` o no enviarlas con `useDefaultRarities: false` produce error.
+- **Categorías:** se requiere al menos una categoría válida, sin duplicados y con IDs positivos. Las categorías referenciadas deben existir previamente.
+- **Validaciones en base de datos:** las reglas se aplican a nivel PostgreSQL (`ERRCODE 22023` para datos inválidos, `ERRCODE P0002` para recursos inexistentes), por lo que los mensajes de error provienen directamente de la capa de persistencia.

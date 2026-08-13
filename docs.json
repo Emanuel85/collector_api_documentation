@@ -31,7 +31,31 @@
           "icon": "newspaper"
         }
       ]
-    }
+    },
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": [
+          "index",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "API Reference",
+        "icon": "code",
+        "pages": [
+          {
+            "group": "Collectors",
+            "icon": "folder",
+            "pages": [
+              "api-reference/collectors/get-collectors",
+              "api-reference/collectors/find-one",
+              "api-reference/collectors/create"
+            ]
+          }
+        ]
+      }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",

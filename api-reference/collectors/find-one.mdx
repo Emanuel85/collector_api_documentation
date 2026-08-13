@@ -1,0 +1,118 @@
+---
+title: "FindOne"
+sidebarTitle: "FindOne"
+description: "Retorna un collector específico por su ID."
+---
+
+**Endpoint:** `GET /collectors/:id`
+
+## Descripción
+
+Este endpoint devuelve **un collector específico** identificado por su `id`, incluyendo sus categorías y rarezas asociadas.
+
+<Info>
+  La estructura de un collector es la misma que devuelve [FindAll](/api-reference/collectors/get-collectors), pero como un único objeto en lugar de un arreglo.
+</Info>
+
+## Objetivo
+
+Obtener un álbum (collector) en específico.
+
+## Parámetros de ruta
+
+<ParamField path="id" type="number" required>
+  Identificador único del collector a consultar.
+</ParamField>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Lee y devuelve un collector puntual con sus relaciones (categorías y rarezas).
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún recurso. Es un endpoint de solo lectura.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** sin modificaciones (solo lectura).
+
+**Restricciones:** sin restricciones de acceso.
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Retorna el collector solicitado.
+</ResponseField>
+
+### Estructura de la respuesta
+
+La estructura del objeto devuelto en `data` es la misma que la de cada elemento del arreglo en [FindAll](/api-reference/collectors/get-collectors#estructura-de-la-respuesta).
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Objeto collector. Ver detalle de campos en [FindAll](/api-reference/collectors/get-collectors#estructura-de-la-respuesta).
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "id": 2,
+    "name": "Collector B",
+    "description": "Descripcion de prueba del collector_b",
+    "total_cards": 20,
+    "create_date": "2026-07-27T17:52:06.316Z",
+    "image_url": "https://example.com/image.jpg",
+    "categories": [
+      { "id": 2, "name": "fantasia" },
+      { "id": 1, "name": "Fútbol" },
+      { "id": 3, "name": "Terror" }
+    ],
+    "rarities": [
+      {
+        "id": 1,
+        "name": "Común",
+        "color": "#9E9E9E",
+        "dropRate": 50,
+        "sortOrder": 1,
+        "isDefault": false
+      }
+    ]
+  },
+  "message": "Collector retrieved successfully"
+}
+```
+
+## Errores
+
+<Warning>
+  **404 `NO_DATA_FOUND`** — El collector con el `id` indicado no existe.
+</Warning>
+
+```json 404 Not Found
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Collector not found"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- El único error contemplado es que el collector no exista (`NO_DATA_FOUND`).
+- La respuesta exitosa reutiliza la misma forma del objeto collector para mantener consistencia con `FindAll`.
