@@ -1,0 +1,154 @@
+---
+title: "Update Categories"
+sidebarTitle: "Update Categories"
+description: "Reemplaza el conjunto de categorías asociadas a un collector."
+---
+
+## Endpoint
+
+```http
+PATCH /collector/:collectorId/categories
+```
+
+## Descripción
+
+Este endpoint permite **reemplazar las categorías asociadas** a un collector. El servicio **elimina todas las categorías actuales** del collector y **reconstruye las relaciones** con el conjunto recibido en el request.
+
+<Info>
+  Este endpoint está acotado únicamente a la gestión de categorías del collector. Para actualizar campos básicos como `name`, `description` o `imageUrl` se debe usar el endpoint [Update](/api-reference/collectors/update).
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Reemplaza el set completo de categorías asociadas al collector por el conjunto recibido.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica datos del collector ni sus rarezas. No agrega categorías de forma incremental.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** las relaciones entre `collectors` y `categories` para el `collectorId` indicado.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Parámetros de ruta
+
+<ParamField path="collectorId" type="number" required>
+  Identificador único del collector cuyas categorías se van a reemplazar.
+</ParamField>
+
+## Cuerpo de la solicitud
+
+<ParamField body="idCodeCategory" type="number[]" required>
+  Arreglo de IDs de categorías que quedarán asociadas al collector. Debe contener al menos un elemento y sin duplicados.
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "idCodeCategory": [13]
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Las categorías del collector se reemplazaron correctamente.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Contiene el conjunto final de categorías asociadas al collector.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="p_categories" type="array">
+      Listado final de categorías persistidas para el collector.
+
+      <Expandable title="Propiedades de la categoría">
+        <ResponseField name="id" type="number">
+          Identificador de la categoría.
+        </ResponseField>
+
+        <ResponseField name="name" type="string">
+          Nombre de la categoría.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "p_categories": [
+      {
+        "id": 13,
+        "name": "Medieval"
+      }
+    ]
+  },
+  "message": "Category updated successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `At least one category must be provided` | El arreglo `idCodeCategory` está vacío o ausente. |
+| `Duplicate category ids are not allowed` | Hay IDs de categoría repetidos en el arreglo. |
+| `One or more categories do not exist` | Uno o más IDs enviados no existen en la base. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "At least one category must be provided"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Reemplazo total, no incremental:** el servicio **borra todas las categorías asociadas** al collector y las reconstruye con el arreglo recibido. No existe forma de agregar o quitar categorías de forma parcial desde este endpoint.
+- **Set mínimo:** el arreglo `idCodeCategory` debe contener al menos una categoría válida.
+- **Sin duplicados:** el arreglo no admite IDs repetidos.
+- **Existencia previa:** todos los IDs enviados deben corresponder a categorías ya registradas en el sistema.
+- **Separación de responsabilidades:** este endpoint solo gestiona categorías. Los campos básicos del collector se modifican con [Update](/api-reference/collectors/update).

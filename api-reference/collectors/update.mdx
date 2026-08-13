@@ -1,0 +1,164 @@
+---
+title: "Update"
+sidebarTitle: "Update"
+description: "Actualiza los campos básicos de un collector: nombre, descripción e imagen."
+---
+
+## Endpoint
+
+```http
+PATCH /collector/:id
+```
+
+## Descripción
+
+Este endpoint permite **actualizar los campos básicos** de un collector: `name`, `description` e `imageUrl`. Los campos se pueden enviar de forma conjunta o por separado; solo se modifican los que estén presentes en el request.
+
+<Info>
+  Este endpoint está acotado a los datos básicos del collector. Para modificar las **categorías asociadas** se debe usar el endpoint [Update Categories](/api-reference/collectors/update-categories).
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Actualiza uno o más de los campos `name`, `description` e `imageUrl` de un collector existente.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica categorías ni rarezas. El campo `totalCards` **no es modificable** por diseño del servicio.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** los campos `name`, `description` e `imageUrl` del registro de `collectors`.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Parámetros de ruta
+
+<ParamField path="id" type="number" required>
+  Identificador único del collector a actualizar.
+</ParamField>
+
+## Cuerpo de la solicitud
+
+<ParamField body="name" type="string">
+  Nuevo nombre del collector.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Nueva descripción del collector.
+</ParamField>
+
+<ParamField body="imageUrl" type="string">
+  Nueva URL o nombre de archivo de la imagen representativa.
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "name": "Malvadito4",
+  "description": "Soy malvadito 4",
+  "imageUrl": "digimon.png"
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  El collector se actualizó correctamente. La respuesta incluye únicamente los campos que fueron modificados.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="update_fields" type="object">
+  Objeto con los campos efectivamente modificados. Cada clave representa el nombre del campo y su valor final.
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "update_fields": {
+    "name": "Malvadito4",
+    "imageUrl": "digimon.png",
+    "description": "Soy malvadito 4"
+  },
+  "message": "Collector updated successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Recurso inexistente
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — El collector referenciado por `id` no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector not found` | El `id` indicado no corresponde a ningún collector existente. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Collector not found"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `No fields to update` | El request no incluye ningún campo actualizable. |
+| `No changes detected` | Los valores enviados son idénticos a los actuales, por lo que no hay nada que modificar. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "No fields to update"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Actualización parcial:** el endpoint acepta uno, varios o todos los campos disponibles. Solo se modifican los que estén presentes en el body.
+- **Alcance acotado:** por diseño, este endpoint no modifica categorías ni rarezas. Cada una de esas responsabilidades vive en su propio endpoint para mantener separación de responsabilidades.
+- **`totalCards` inmutable:** el campo `totalCards` se define al crear el collector y **no puede modificarse** posteriormente. Cualquier intento de enviarlo en el body será ignorado.
+- **Detección de cambios:** si los valores enviados coinciden con los actuales, el servicio responde `No changes detected` en lugar de ejecutar un update vacío.
+- **Respuesta selectiva:** la respuesta expone únicamente los campos efectivamente modificados en `update_fields`, para reflejar con precisión el efecto de la operación.

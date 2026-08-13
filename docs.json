@@ -46,11 +46,13 @@
         "pages": [
           {
             "group": "Collectors",
-            "icon": "folder",
+            "icon": "album-collection",
             "pages": [
               "api-reference/collectors/get-collectors",
               "api-reference/collectors/find-one",
-              "api-reference/collectors/create"
+              "api-reference/collectors/create",
+              "api-reference/collectors/update",
+              "api-reference/collectors/update-categories"
             ]
           }
         ]
