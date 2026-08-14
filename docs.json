@@ -41,6 +41,20 @@
         ]
       },
       {
+        "group": "Getting Started",
+        "pages": [
+          "index",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Getting Started",
+        "pages": [
+          "index",
+          "quickstart"
+        ]
+      },
+      {
         "group": "API Reference",
         "icon": "code",
         "pages": [
