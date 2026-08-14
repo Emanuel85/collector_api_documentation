@@ -1,0 +1,198 @@
+---
+title: "Update Rarities"
+sidebarTitle: "Update Rarities"
+description: "Actualiza las rarezas asociadas a un collector: nombre, color y drop rate."
+---
+
+## Endpoint
+
+```http
+PATCH /collector/:collectorId/rarities
+```
+
+## Descripción
+
+Este endpoint permite **actualizar las rarezas existentes** de un collector. Solo se pueden modificar los campos `name`, `color` y `dropRate`, que pueden enviarse de forma conjunta o por separado por cada rareza.
+
+<Info>
+  Este endpoint está acotado a la actualización de rarezas existentes. No permite agregar nuevas rarezas ni eliminar las actuales.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Actualiza uno o más campos (`name`, `color`, `dropRate`) de las rarezas ya asociadas al collector.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No crea nuevas rarezas ni elimina las existentes. No modifica `sortOrder` ni `isDefault`.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** los campos `name`, `color` y `dropRate` de las rarezas asociadas al `collectorId` indicado.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Parámetros de ruta
+
+<ParamField path="collectorId" type="number" required>
+  Identificador único del collector cuyas rarezas se van a actualizar.
+</ParamField>
+
+## Cuerpo de la solicitud
+
+<ParamField body="rarities" type="array" required>
+  Arreglo de rarezas a actualizar. Debe contener al menos un elemento y no admite IDs duplicados.
+
+  <Expandable title="Propiedades de cada rareza">
+    <ParamField body="id" type="number" required>
+      Identificador de la rareza a modificar. Debe pertenecer al collector y ser mayor a cero.
+    </ParamField>
+
+    <ParamField body="name" type="string">
+      Nuevo nombre. Cadena no vacía de hasta 45 caracteres.
+    </ParamField>
+
+    <ParamField body="color" type="string">
+      Nuevo color hexadecimal. Cadena no vacía de hasta 45 caracteres.
+    </ParamField>
+
+    <ParamField body="dropRate" type="number">
+      Nueva probabilidad de aparición. Debe ser mayor a 0 y menor o igual a 100.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "rarities": [
+    {
+      "name": "comun",
+      "color": "#9E9E9F",
+      "dropRate": 25,
+      "id": 1
+    },
+    {
+      "name": "poco comun",
+      "color": "#9E9E9E",
+      "dropRate": 15,
+      "id": 2
+    },
+    {
+      "name": "demasiado comun",
+      "color": "#9E9E9C",
+      "dropRate": 60,
+      "id": 3
+    }
+  ]
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Las rarezas del collector se actualizaron correctamente. La respuesta devuelve los cambios realizados junto con datos adicionales de contexto.
+</ResponseField>
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector id is required` | Falta el parámetro `collectorId` en la ruta. |
+| `Rarities are required` | Falta el campo `rarities` en el body. |
+| `Rarities must be a JSON array` | `rarities` no es un arreglo JSON. |
+| `At least one rarity must be provided` | El arreglo `rarities` está vacío. |
+| `Every rarity must be a JSON object` | Algún elemento de `rarities` no es un objeto. |
+| `Every rarity must contain an id` | Falta el campo `id` en alguna de las rarezas. |
+| `Rarity id must be an integer greater than zero` | Algún `id` no es un entero positivo. |
+| `Duplicate rarity ids are not allowed` | Hay `id` de rareza repetidos en el arreglo. |
+| `Every rarity must contain at least one field to update` | Alguna rareza no incluye ningún campo modificable (`name`, `color` o `dropRate`). |
+| `Rarity name must be a non-empty string with a maximum of 45 characters` | `name` vacío o supera los 45 caracteres. |
+| `Rarity color must be a non-empty string with a maximum of 45 characters` | `color` vacío o supera los 45 caracteres. |
+| `dropRate must be greater than 0 and less than or equal to 100` | `dropRate` fuera del rango permitido `(0, 100]`. |
+| `The final sum of dropRate values must be exactly 100. Current total: %` | La suma total de `dropRate` de todas las rarezas del collector, tras aplicar los cambios, no da exactamente 100. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "At least one rarity must be provided"
+}
+```
+
+### Recursos inexistentes
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — Alguno de los recursos referenciados no existe o no pertenece al collector.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector not found` | El `collectorId` indicado no corresponde a ningún collector existente. |
+| `One or more rarity ids do not belong to this collector` | Alguna de las rarezas enviadas no pertenece al collector referenciado. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Collector not found"
+}
+```
+
+### Conflictos de unicidad
+
+Origen: PostgreSQL, `ERRCODE 22025`.
+
+<Warning>
+  **`DUPLICATE_VALUE`** — El payload genera valores duplicados dentro del set de rarezas del collector.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Duplicate dropRate values are not allowed` | Dos o más rarezas del collector quedarían con el mismo `dropRate`. |
+| `Duplicate rarity colors are not allowed` | Dos o más rarezas del collector quedarían con el mismo `color`. |
+| `Duplicate rarity names are not allowed` | Dos o más rarezas del collector quedarían con el mismo `name`. |
+
+```json DUPLICATE_VALUE
+{
+  "status": "error",
+  "code": "DUPLICATE_VALUE",
+  "message": "Duplicate rarity names are not allowed"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Actualización parcial por rareza:** cada elemento del arreglo puede enviar uno, dos o los tres campos modificables (`name`, `color`, `dropRate`), pero **debe incluir al menos uno** además del `id`.
+- **Alcance acotado:** este endpoint solo modifica rarezas existentes. No permite crearlas ni eliminarlas, y no toca los campos `sortOrder` ni `isDefault`.
+- **Pertenencia obligatoria:** todos los `id` enviados deben pertenecer al collector indicado en la ruta.
+- **Suma de `dropRate` = 100:** tras aplicar los cambios, la suma total de `dropRate` de **todas** las rarezas del collector debe ser exactamente 100. El servicio rechaza el update en caso contrario.
+- **Unicidad dentro del collector:** los valores de `name`, `color` y `dropRate` deben ser únicos entre las rarezas del collector. Cualquier colisión produce un error `DUPLICATE_VALUE`.
+- **Rango de `dropRate`:** debe ser estrictamente mayor a 0 y menor o igual a 100.

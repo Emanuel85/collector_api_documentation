@@ -46,13 +46,19 @@
         "pages": [
           {
             "group": "Collectors",
-            "icon": "album-collection",
             "pages": [
               "api-reference/collectors/get-collectors",
               "api-reference/collectors/find-one",
               "api-reference/collectors/create",
               "api-reference/collectors/update",
-              "api-reference/collectors/update-categories"
+              "api-reference/collectors/update-categories",
+              "api-reference/collectors/update-rarities"
+            ]
+          },
+          {
+            "group": "Categories",
+            "pages": [
+              "api-reference/categories/create"
             ]
           }
         ]

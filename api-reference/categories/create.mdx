@@ -1,0 +1,157 @@
+---
+title: "Create"
+sidebarTitle: "Create"
+description: "Crea una nueva categoría en el sistema."
+---
+
+## Endpoint
+
+```http
+POST /categories
+```
+
+## Descripción
+
+Este endpoint permite **crear una nueva categoría** que luego podrá asociarse a uno o más collectors.
+
+<Info>
+  Las categorías son entidades independientes de los collectors. Se crean una vez y se reutilizan en múltiples collectors mediante los endpoints de Collectors.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Persiste una nueva categoría con el nombre indicado.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No asocia la categoría a ningún collector ni gestiona relaciones. Esa responsabilidad vive en los endpoints de Collectors.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** crea un registro en `categories`.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Cuerpo de la solicitud
+
+<ParamField body="name" type="string" required>
+  Nombre de la categoría. Cadena no vacía de hasta 60 caracteres, sin caracteres inválidos.
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "name": "Medieval"
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  La categoría se creó correctamente.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Datos mínimos de la categoría recién creada.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="p_id" type="number">
+      Identificador único asignado a la nueva categoría.
+    </ResponseField>
+
+    <ResponseField name="p_category_name" type="string">
+      Nombre de la categoría creada.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "p_id": 14,
+    "p_category_name": "Espacial"
+  },
+  "message": "Category created successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Category name cannot be empty` | El campo `name` está ausente o vacío. |
+| `Category name cannot exceed 60 characters` | El campo `name` supera los 60 caracteres. |
+| `Category name contains invalid characters` | El campo `name` contiene caracteres no permitidos. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "Category name cannot be empty"
+}
+```
+
+### Conflictos de unicidad
+
+Origen: PostgreSQL, `ERRCODE 23505`.
+
+<Warning>
+  **`DUPLICATE_VALUE`** — Ya existe una categoría con el mismo nombre.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `A category with the same name already exists` | Ya existe una categoría registrada con el mismo `name`. |
+
+```json DUPLICATE_VALUE
+{
+  "status": "error",
+  "code": "DUPLICATE_VALUE",
+  "message": "A category with the same name already exists"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Unicidad por nombre:** no se permiten dos categorías con el mismo `name`. La verificación se realiza a nivel base de datos (`ERRCODE 23505`).
+- **Longitud máxima:** el `name` admite hasta 60 caracteres.
+- **Caracteres permitidos:** el `name` no puede contener caracteres inválidos definidos por el servicio.
+- **Alcance acotado:** este endpoint solo crea la categoría. La asociación a collectors se gestiona desde los endpoints correspondientes de Collectors.
