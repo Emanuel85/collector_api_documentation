@@ -1,0 +1,202 @@
+---
+title: "FindAll"
+sidebarTitle: "FindAll"
+description: "Retorna todas las cartas pertenecientes a un collector."
+---
+
+## Endpoint
+
+```http
+GET /cards/collector/:id
+```
+
+## Descripción
+
+Este endpoint devuelve **todas las cartas** asociadas a un collector específico, incluyendo la rareza aplicada a cada una.
+
+<Info>
+  La respuesta expone datos básicos de la carta y su rareza. Para obtener el detalle del template y los slots de atributos, consultar el endpoint correspondiente.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Lee y devuelve el listado de cartas del collector referenciado, con su rareza asociada.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún recurso. No expone la información del template ni los valores de atributos de cada carta.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** sin modificaciones (solo lectura).
+
+**Restricciones:** sin restricciones de acceso.
+
+## Parámetros de ruta
+
+<ParamField path="id" type="number" required>
+  Identificador único del collector cuyas cartas se quieren consultar.
+</ParamField>
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Retorna el listado de cartas del collector.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Arreglo de cartas del collector.
+
+  <Expandable title="Propiedades de la carta">
+    <ResponseField name="id" type="number">
+      Identificador único de la carta.
+    </ResponseField>
+
+    <ResponseField name="name" type="string">
+      Nombre de la carta.
+    </ResponseField>
+
+    <ResponseField name="description" type="string">
+      Descripción de la carta.
+    </ResponseField>
+
+    <ResponseField name="image_url" type="string">
+      URL o nombre de archivo de la imagen.
+    </ResponseField>
+
+    <ResponseField name="create_date" type="string (ISO 8601)">
+      Fecha de creación de la carta.
+    </ResponseField>
+
+    <ResponseField name="is_active" type="boolean">
+      Indica si la carta está activa.
+    </ResponseField>
+
+    <ResponseField name="rarity" type="object">
+      Rareza asociada a la carta.
+
+      <Expandable title="Propiedades de la rareza">
+        <ResponseField name="id" type="number">
+          Identificador de la rareza.
+        </ResponseField>
+
+        <ResponseField name="name" type="string">
+          Nombre de la rareza.
+        </ResponseField>
+
+        <ResponseField name="color" type="string">
+          Color hexadecimal asociado.
+        </ResponseField>
+
+        <ResponseField name="dropRate" type="number">
+          Probabilidad de aparición (porcentaje).
+        </ResponseField>
+
+        <ResponseField name="sortOrder" type="number">
+          Orden de visualización.
+        </ResponseField>
+
+        <ResponseField name="isDefault" type="boolean">
+          Indica si es una rareza por defecto del sistema.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 7,
+      "name": "Gummoss",
+      "description": "Primera generacion de pokemon",
+      "image_url": "image.png",
+      "create_date": "2026-08-13T13:09:18.078Z",
+      "is_active": true,
+      "rarity": {
+        "id": 9,
+        "name": "Legendaria",
+        "color": "#FFC107",
+        "dropRate": 1,
+        "isDefault": true,
+        "sortOrder": 5
+      }
+    },
+    {
+      "id": 8,
+      "name": "lamball",
+      "description": "Primera generacion de pokemon",
+      "image_url": "image.png",
+      "create_date": "2026-08-13T13:09:18.078Z",
+      "is_active": true,
+      "rarity": {
+        "id": 5,
+        "name": "Común",
+        "color": "#9E9E9E",
+        "dropRate": 60,
+        "isDefault": true,
+        "sortOrder": 1
+      }
+    }
+  ],
+  "message": "Cards found successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Recurso inexistente
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — El collector referenciado no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector not found` | El `id` indicado no corresponde a ningún collector existente. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Collector not found"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Alcance acotado al collector:** el listado siempre está restringido al collector referenciado. No existe un endpoint para consultar cartas de todos los collectors en simultáneo.
+- **Cartas inactivas:** el listado incluye cartas con `is_active: false`. El filtrado por estado, si se requiere, debe realizarse del lado del consumidor.
+- **Alcance de datos:** la respuesta expone datos básicos de la carta y su rareza. Los datos del template y los slots de atributos no se incluyen en esta consulta.

@@ -1,0 +1,153 @@
+---
+title: "FindOne"
+sidebarTitle: "FindOne"
+description: "Retorna las rarezas de un collector específico por su ID."
+---
+
+## Endpoint
+
+```http
+GET /rarities/:id
+```
+
+## Descripción
+
+Este endpoint devuelve **el set de rarezas** de un collector específico identificado por su `id`.
+
+<Info>
+  La respuesta reutiliza la misma forma que [FindAll](/api-reference/rarities/find-all), pero acotada al collector solicitado.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Lee y devuelve las rarezas asociadas al collector referenciado por `id`.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún recurso. Es un endpoint de solo lectura.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** sin modificaciones (solo lectura).
+
+**Restricciones:** sin restricciones de acceso.
+
+## Parámetros de ruta
+
+<ParamField path="id" type="number" required>
+  Identificador único del collector cuyas rarezas se quieren consultar.
+</ParamField>
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Retorna las rarezas del collector solicitado.
+</ResponseField>
+
+### Estructura de la respuesta
+
+La estructura del arreglo `data` es la misma que en [FindAll](/api-reference/rarities/find-all#estructura-de-la-respuesta), acotada a un único elemento correspondiente al collector consultado.
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": [
+    {
+      "collector": { "id": 5, "name": "Collector e" },
+      "rarities": [
+        {
+          "id": 1,
+          "name": "comun",
+          "color": "#9E9E9F",
+          "dropRate": 25,
+          "isDefault": false,
+          "sortOrder": 1
+        },
+        {
+          "id": 2,
+          "name": "poco comun",
+          "color": "#9E9E9E",
+          "dropRate": 15,
+          "isDefault": false,
+          "sortOrder": 2
+        },
+        {
+          "id": 3,
+          "name": "demasiado comun",
+          "color": "#9E9E9C",
+          "dropRate": 60,
+          "isDefault": false,
+          "sortOrder": 3
+        }
+      ]
+    }
+  ],
+  "message": "Rarities retrieved successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — Parámetros de entrada inválidos o incompletos.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector id is required` | Falta el parámetro `id` en la ruta. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "Collector id is required"
+}
+```
+
+### Recurso inexistente
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — El collector referenciado no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector not found` | El `id` indicado no corresponde a ningún collector existente. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Collector not found"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Consulta acotada por collector:** el parámetro `id` en la ruta corresponde al **collector**, no a una rareza puntual.
+- **Estructura consistente con `FindAll`:** la respuesta mantiene la misma forma (arreglo con `collector` \+ `rarities`), aunque contenga un único elemento, para facilitar el consumo compartido.
+- **Rarezas por defecto:** las rarezas con `isDefault: true` corresponden a plantillas del sistema aplicadas al collector al momento de su creación.

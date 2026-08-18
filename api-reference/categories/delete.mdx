@@ -1,0 +1,109 @@
+---
+title: "Delete"
+sidebarTitle: "Delete"
+description: "Elimina una categoría existente por su ID."
+---
+
+## Endpoint
+
+```http
+DELETE /categories/:id
+```
+
+## Descripción
+
+Este endpoint permite **eliminar una categoría** identificada por su `id`, siempre que no esté asociada a ningún collector.
+
+<Info>
+  La eliminación es **física**: la categoría deja de existir en el sistema. No se realiza borrado lógico.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Elimina el registro de la categoría referenciada por `id`.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No fuerza la eliminación si la categoría está asociada a algún collector, ni realiza limpieza automática de esas relaciones.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** elimina un registro de `categories`.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Parámetros de ruta
+
+<ParamField path="id" type="number" required>
+  Identificador único de la categoría a eliminar.
+</ParamField>
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  La categoría se eliminó correctamente.
+</ResponseField>
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Recurso inexistente
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — La categoría con el `id` indicado no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Category not found` | El `id` indicado no corresponde a ninguna categoría existente. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Category not found"
+}
+```
+
+### Conflicto de integridad referencial
+
+Origen: PostgreSQL, `ERRCODE 23503`.
+
+<Warning>
+  **`FOREIGN_KEY_VIOLATION`** — La categoría está asociada a uno o más collectors y no puede eliminarse.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Category cannot be deleted because it is associated with one or more collectors` | La categoría tiene relaciones activas con al menos un collector. |
+
+```json FOREIGN_KEY_VIOLATION
+{
+  "status": "error",
+  "code": "FOREIGN_KEY_VIOLATION",
+  "message": "Category cannot be deleted because it is associated with one or more collectors"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Eliminación física:** el registro se borra definitivamente. No existe un mecanismo de borrado lógico ni papelera de recuperación.
+- **Protección por relaciones:** una categoría no puede eliminarse mientras esté asociada a algún collector. Primero se deben remover esas asociaciones desde el endpoint [Update Categories](/api-reference/collectors/update-categories).
+- **Alcance acotado:** este endpoint solo elimina la categoría. No modifica collectors ni sus rarezas.

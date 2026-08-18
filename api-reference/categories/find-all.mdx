@@ -1,0 +1,91 @@
+---
+title: "FindAll"
+sidebarTitle: "FindAll"
+description: "Retorna la lista completa de categorías existentes."
+---
+
+## Endpoint
+
+```http
+GET /categories
+```
+
+## Descripción
+
+Este endpoint devuelve **todas las categorías** registradas en el sistema.
+
+<Info>
+  Las categorías son entidades independientes que luego se asocian a uno o más collectors mediante los endpoints correspondientes de Collectors.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Lee y devuelve el listado completo de categorías existentes.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún recurso. Es un endpoint de solo lectura.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** sin modificaciones (solo lectura).
+
+**Restricciones:** sin restricciones de acceso.
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Retorna el listado de categorías correctamente.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Arreglo de categorías.
+
+  <Expandable title="Propiedades de la categoría">
+    <ResponseField name="id_code_category" type="number">
+      Identificador único de la categoría.
+    </ResponseField>
+
+    <ResponseField name="name" type="string">
+      Nombre de la categoría.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": [
+    { "id_code_category": 2, "name": "fantasia" },
+    { "id_code_category": 3, "name": "Terror" },
+    { "id_code_category": 13, "name": "Deportes" },
+    { "id_code_category": 1, "name": "Medieval" },
+    { "id_code_category": 14, "name": "Espacial" }
+  ],
+  "message": "Categories retrieved successfully"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Orden:** el listado se devuelve en el orden natural provisto por la base de datos. No aplica un ordenamiento explícito.
+- **Sin paginación:** actualmente se retornan todas las categorías en una única respuesta.
+- **Alcance acotado:** este endpoint no expone la relación con collectors. Esa información vive en los endpoints de Collectors.

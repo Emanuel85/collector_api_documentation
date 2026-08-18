@@ -1,0 +1,240 @@
+---
+title: "Update"
+sidebarTitle: "Update"
+description: "Actualiza los campos básicos de una o más cartas de un collector: name, description e imageUrl."
+---
+
+## Endpoint
+
+```http
+PATCH /cards/collector/:collectorId
+```
+
+## Descripción
+
+Este endpoint permite **actualizar los campos básicos** (`name`, `description`, `imageUrl`) de una o múltiples cartas dentro de un collector. Los campos se pueden enviar de forma conjunta o por separado; solo se modifican los que estén presentes en cada carta del request.
+
+<Info>
+  Este endpoint está acotado a los datos básicos de la carta. Para habilitar o deshabilitar cartas se utiliza el endpoint [Update Status](/api-reference/cards/update-status).
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Actualiza uno o más de los campos `name`, `description` e `imageUrl` de una o varias cartas del collector referenciado.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica la rareza ni el estado `isActive`. No cambia el template si la carta ya tiene atributos cargados.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** los campos `name`, `description`, `imageUrl` y, bajo condiciones, `templateId` de las cartas asociadas al `collectorId` indicado.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Parámetros de ruta
+
+<ParamField path="collectorId" type="number" required>
+  Identificador único del collector al que pertenecen las cartas.
+</ParamField>
+
+## Cuerpo de la solicitud
+
+<ParamField body="cards" type="array" required>
+  Arreglo de cartas a actualizar. Debe contener al menos un elemento y no admite `id` duplicados.
+
+  <Expandable title="Propiedades de cada carta">
+    <ParamField body="id" type="number" required>
+      Identificador de la carta a modificar. Debe pertenecer al collector y ser mayor a cero.
+    </ParamField>
+
+    <ParamField body="name" type="string">
+      Nuevo nombre. Cadena no vacía de hasta 100 caracteres.
+    </ParamField>
+
+    <ParamField body="description" type="string">
+      Nueva descripción. Cadena de hasta 255 caracteres.
+    </ParamField>
+
+    <ParamField body="imageUrl" type="string">
+      Nueva URL o nombre de archivo de la imagen. Cadena no vacía de hasta 255 caracteres.
+    </ParamField>
+
+    <ParamField body="templateId" type="number">
+      Nuevo template de diseño. Solo se admite si la carta aún no tiene atributos cargados.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "cards": [
+    {
+      "id": 1,
+      "name": "Gummoss V2"
+    },
+    {
+      "id": 2,
+      "description": "Nueva descripción",
+      "imageUrl": "lamball-v2.png"
+    }
+  ]
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Las cartas se actualizaron correctamente. La respuesta expone únicamente los campos efectivamente modificados por cada carta.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Contiene el detalle de los cambios aplicados.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="p_changes" type="array">
+      Listado de cartas modificadas. Cada elemento incluye el `id` y únicamente los campos actualizados con su valor final.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "p_changes": [
+      {
+        "id": 1,
+        "name": "Gummoss V23"
+      },
+      {
+        "id": 2,
+        "imageUrl": "lamball-v4.png",
+        "description": "Nueva descripción para.."
+      }
+    ]
+  },
+  "message": "Cards created successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector id is required` | Falta el parámetro `collectorId` en la ruta. |
+| `Cards are required` | Falta el campo `cards` en el body. |
+| `Cards must be a JSON array` | `cards` no es un arreglo JSON. |
+| `At least one card must be provided` | El arreglo `cards` está vacío. |
+| `Every card must be a JSON object` | Algún elemento de `cards` no es un objeto. |
+| `Every card must contain an id` | Falta el campo `id` en alguna de las cartas. |
+| `Card id must be a number` | Algún `id` no es un número. |
+| `Card id must be greater than zero` | Algún `id` no es un entero positivo. |
+| `Duplicate card ids are not allowed` | Hay `id` de carta repetidos en el arreglo. |
+| `Every card must contain at least one field to update` | Alguna carta no incluye ningún campo modificable además del `id`. |
+| `Card name must be a non-empty string with a maximum of 100 characters` | `name` vacío o supera los 100 caracteres. |
+| `Card imageUrl must be a non-empty string with a maximum of 255 characters` | `imageUrl` vacío o supera los 255 caracteres. |
+| `Card description must be a string with a maximum of 255 characters` | `description` supera los 255 caracteres. |
+| `templateId must be a number greater than zero` | `templateId` no es un entero positivo. |
+| `Inactive templates cannot be assigned to cards` | El `templateId` referenciado corresponde a un template inactivo. |
+| `The template cannot be changed because the card already has attributes` | Se intentó cambiar el `templateId` de una carta que ya tiene atributos cargados. |
+| `No changes detected` | Los valores enviados coinciden con los actuales, por lo que no hay nada que modificar. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "No changes detected"
+}
+```
+
+### Conflictos de unicidad
+
+Origen: PostgreSQL, `ERRCODE 23505`.
+
+<Warning>
+  **`DUPLICATE_VALUE`** — El cambio generaría una carta duplicada dentro del collector.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `A card with the same name and rarity already exists in this collector` | Ya existe una carta con el mismo `name` \+ `rarityId` dentro del collector. |
+
+```json DUPLICATE_VALUE
+{
+  "status": "error",
+  "code": "DUPLICATE_VALUE",
+  "message": "A card with the same name and rarity already exists in this collector"
+}
+```
+
+### Recursos inexistentes
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — Alguno de los recursos referenciados no existe o no pertenece al collector.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector not found` | El `collectorId` indicado no corresponde a ningún collector existente. |
+| `One or more cards do not belong to this collector` | Alguna de las cartas del arreglo no pertenece al collector referenciado. |
+| `One or more templates do not exist` | Algún `templateId` enviado no existe en el sistema. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "One or more cards do not belong to this collector"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Actualización parcial por carta:** cada elemento del arreglo puede enviar uno o más campos modificables, pero **debe incluir al menos uno** además del `id`.
+- **Alcance acotado:** este endpoint no modifica la rareza (`rarityId`) ni el estado `isActive` de la carta. El cambio de estado se gestiona desde [Update Status](/api-reference/cards/update-status).
+- **Cambio de template condicionado:** el `templateId` solo puede modificarse mientras la carta **no tenga atributos cargados**. Una vez cargados, el template queda inmutable.
+- **Templates activos:** el `templateId` referenciado debe corresponder a un template **activo**.
+- **Pertenencia obligatoria:** todos los `id` enviados deben pertenecer al collector indicado en la ruta.
+- **Detección de cambios:** si los valores enviados coinciden con los actuales, el servicio responde `No changes detected` en lugar de ejecutar un update vacío.
+- **Unicidad `name` \+ `rarityId`:** el cambio no puede generar una carta con el mismo `name` y `rarityId` que otra ya existente dentro del collector.
+- **Respuesta selectiva:** la respuesta expone únicamente los campos efectivamente modificados por cada carta en `p_changes`, para reflejar con precisión el efecto de la operación.

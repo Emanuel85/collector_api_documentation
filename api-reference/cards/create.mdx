@@ -1,0 +1,359 @@
+---
+title: "Create"
+sidebarTitle: "Create"
+description: "Crea una o más cartas asociadas a un collector en una única operación."
+---
+
+## Endpoint
+
+```http
+POST /cards/collector/:id
+```
+
+## Descripción
+
+Este endpoint permite **crear una o múltiples cartas** dentro de un collector específico. Cada carta debe indicar la rareza, el template y los datos básicos (`name`, `imageUrl`, `description`).
+
+<Info>
+  El `templateId` define el **diseño** que usarán las cartas. Cada template incluye un conjunto de _slots_ de atributos que determinan la cantidad máxima de atributos que la carta podrá tener.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Persiste una o más cartas dentro del collector indicado, valida sus relaciones (rareza y template) y devuelve el detalle final de cada carta creada.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No crea rarezas ni templates. No modifica ni elimina cartas existentes. No carga los valores de los atributos definidos por el template.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** crea registros en `cards` asociados al `collectorId` indicado.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Parámetros de ruta
+
+<ParamField path="id" type="number" required>
+  Identificador único del collector al que pertenecerán las cartas.
+</ParamField>
+
+## Cuerpo de la solicitud
+
+<ParamField body="cards" type="array" required>
+  Arreglo de cartas a crear. Debe contener al menos un elemento.
+
+  <Expandable title="Propiedades de cada carta">
+    <ParamField body="rarityId" type="number" required>
+      Identificador de la rareza. Debe pertenecer al collector y ser mayor a cero.
+    </ParamField>
+
+    <ParamField body="templateId" type="number" required>
+      Identificador del template de diseño. Debe corresponder a un template **activo**.
+    </ParamField>
+
+    <ParamField body="name" type="string" required>
+      Nombre de la carta.
+    </ParamField>
+
+    <ParamField body="imageUrl" type="string" required>
+      URL o nombre de archivo de la imagen de la carta.
+    </ParamField>
+
+    <ParamField body="description" type="string">
+      Descripción de la carta.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "cards": [
+    {
+      "rarityId": 9,
+      "templateId": 3,
+      "imageUrl": "image.png",
+      "name": "Gummoss",
+      "description": "Primera generacion de pokemon"
+    },
+    {
+      "rarityId": 5,
+      "templateId": 3,
+      "imageUrl": "image.png",
+      "name": "lamball",
+      "description": "Primera generacion de pokemon"
+    }
+  ]
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Las cartas se crearon correctamente. La respuesta incluye el detalle final de cada carta persistida.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Contiene el listado de cartas efectivamente creadas.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="p_created_cards" type="array">
+      Detalle de cada carta creada, incluyendo la rareza aplicada y el template resuelto con sus slots.
+
+      <Expandable title="Propiedades de la carta">
+        <ResponseField name="id" type="number">
+          Identificador único de la carta.
+        </ResponseField>
+
+        <ResponseField name="name" type="string">
+          Nombre de la carta.
+        </ResponseField>
+
+        <ResponseField name="description" type="string">
+          Descripción de la carta.
+        </ResponseField>
+
+        <ResponseField name="imageUrl" type="string">
+          URL o nombre de archivo de la imagen.
+        </ResponseField>
+
+        <ResponseField name="isActive" type="boolean">
+          Indica si la carta está activa.
+        </ResponseField>
+
+        <ResponseField name="createDate" type="string (ISO 8601)">
+          Fecha de creación de la carta.
+        </ResponseField>
+
+        <ResponseField name="collectorId" type="number">
+          Collector al que pertenece la carta.
+        </ResponseField>
+
+        <ResponseField name="rarity" type="object">
+          Rareza aplicada a la carta.
+
+          <Expandable title="Propiedades de la rareza">
+            <ResponseField name="id" type="number">
+              Identificador de la rareza.
+            </ResponseField>
+
+            <ResponseField name="name" type="string">
+              Nombre de la rareza.
+            </ResponseField>
+
+            <ResponseField name="color" type="string">
+              Color hexadecimal asociado.
+            </ResponseField>
+
+            <ResponseField name="dropRate" type="number">
+              Probabilidad de aparición (porcentaje).
+            </ResponseField>
+
+            <ResponseField name="sortOrder" type="number">
+              Orden de visualización.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+
+        <ResponseField name="template" type="object">
+          Template de diseño aplicado a la carta.
+
+          <Expandable title="Propiedades del template">
+            <ResponseField name="id" type="number">
+              Identificador del template.
+            </ResponseField>
+
+            <ResponseField name="name" type="string">
+              Nombre del template.
+            </ResponseField>
+
+            <ResponseField name="description" type="string">
+              Descripción del template.
+            </ResponseField>
+
+            <ResponseField name="imageTemplate" type="string">
+              Imagen de referencia del diseño.
+            </ResponseField>
+
+            <ResponseField name="isActive" type="boolean">
+              Indica si el template está activo.
+            </ResponseField>
+
+            <ResponseField name="maxAttributes" type="number">
+              Cantidad máxima de atributos soportados.
+            </ResponseField>
+
+            <ResponseField name="templateSlots" type="array">
+              Slots de atributos disponibles en el template.
+
+              <Expandable title="Propiedades del slot">
+                <ResponseField name="id" type="number">
+                  Identificador del slot.
+                </ResponseField>
+
+                <ResponseField name="sortOrder" type="number">
+                  Orden del slot dentro del template.
+                </ResponseField>
+              </Expandable>
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "p_created_cards": [
+      {
+        "id": 9,
+        "name": "GummossASASD",
+        "rarity": {
+          "id": 9,
+          "name": "Legendaria",
+          "color": "#FFC107",
+          "dropRate": 1,
+          "sortOrder": 5
+        },
+        "imageUrl": "image.png",
+        "isActive": true,
+        "template": {
+          "id": 3,
+          "name": "Template B",
+          "isActive": true,
+          "description": "Template básico de tres atributos",
+          "imageTemplate": "https://example.com/template-a.png",
+          "maxAttributes": 3,
+          "templateSlots": [
+            { "id": 6, "sortOrder": 1 },
+            { "id": 7, "sortOrder": 2 },
+            { "id": 8, "sortOrder": 3 }
+          ]
+        },
+        "createDate": "2026-08-18T14:27:59.716823+00:00",
+        "collectorId": 20,
+        "description": "Primera generacion de pokemon"
+      }
+    ]
+  },
+  "message": "Cards created successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector id is required` | Falta el parámetro `id` en la ruta. |
+| `Cards are required` | Falta el campo `cards` en el body. |
+| `Cards must be a JSON array` | `cards` no es un arreglo JSON. |
+| `At least one card must be provided` | El arreglo `cards` está vacío. |
+| `Every card must be a JSON object` | Algún elemento de `cards` no es un objeto. |
+| `Every card must contain rarityId, templateId, name and imageUrl` | Falta alguno de los campos obligatorios en una carta. |
+| `Card fields contain invalid data types` | Alguno de los campos de una carta tiene un tipo inválido. |
+| `rarityId and templateId must be greater than zero` | `rarityId` o `templateId` no son enteros positivos. |
+| `One or more card fields exceed the allowed length` | Algún campo de la carta supera la longitud máxima permitida. |
+| `Inactive templates cannot be assigned to cards` | El `templateId` referenciado corresponde a un template inactivo. |
+| `The collector card limit would be exceeded. Current cards: %, requested cards: %, maximum allowed: %` | La cantidad de cartas del collector superaría el límite definido por `totalCards`. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "At least one card must be provided"
+}
+```
+
+### Conflictos de unicidad
+
+Origen: PostgreSQL, `ERRCODE 23505`.
+
+<Warning>
+  **`DUPLICATE_VALUE`** — El payload genera cartas duplicadas dentro del collector.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Duplicate cards with the same name and rarity are not allowed` | Dos o más cartas del arreglo comparten `name` \+ `rarityId`. |
+| `A card with the same name and rarity already exists in this collector` | Ya existe una carta en el collector con el mismo `name` \+ `rarityId`. |
+
+```json DUPLICATE_VALUE
+{
+  "status": "error",
+  "code": "DUPLICATE_VALUE",
+  "message": "A card with the same name and rarity already exists in this collector"
+}
+```
+
+### Recursos inexistentes
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — Alguno de los recursos referenciados en el payload no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector not found` | El `id` de collector en la ruta no existe. |
+| `One or more rarities do not exist for this collector` | Algún `rarityId` no pertenece al collector referenciado. |
+| `One or more templates do not exist` | Algún `templateId` no existe en el sistema. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "One or more rarities do not exist for this collector"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Creación masiva:** el endpoint acepta una o múltiples cartas en un solo request. Todas se procesan bajo el mismo collector referenciado por `id` en la ruta.
+- **Límite por collector:** la cantidad total de cartas del collector no puede superar el valor de `totalCards` definido al momento de crearlo. El servicio rechaza el request si el límite sería excedido.
+- **Rareza acotada al collector:** el `rarityId` debe pertenecer al collector referenciado. No se permite usar rarezas de otros collectors.
+- **Templates activos:** el `templateId` debe corresponder a un template **activo**. Templates inactivos son rechazados por el servicio.
+- **Rol del template:** el template define el **diseño** de la carta y la cantidad de _slots_ de atributos disponibles (`templateSlots`), que fija cuántos atributos podrán cargarse posteriormente en cada carta.
+- **Unicidad por `name` \+ `rarityId`:** dentro de un mismo collector no se permiten cartas con el mismo `name` y `rarityId`. La restricción aplica tanto entre las cartas del request como contra las ya existentes.
+- **Alcance acotado:** este endpoint solo crea el registro base de la carta. La carga de valores para los slots de atributos se gestiona en un endpoint dedicado.

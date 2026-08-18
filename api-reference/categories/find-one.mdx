@@ -1,0 +1,125 @@
+---
+title: "FindOne"
+sidebarTitle: "FindOne"
+description: "Retorna una categoría específica por su ID."
+---
+
+## Endpoint
+
+```http
+GET /categories/:id
+```
+
+## Descripción
+
+Este endpoint devuelve **una categoría específica** identificada por su `id`.
+
+<Info>
+  La estructura de una categoría es la misma que devuelve [FindAll](/api-reference/categories/find-all), pero como un único objeto en lugar de un arreglo.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Lee y devuelve una categoría puntual por su identificador.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún recurso. Es un endpoint de solo lectura.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** sin modificaciones (solo lectura).
+
+**Restricciones:** sin restricciones de acceso.
+
+## Parámetros de ruta
+
+<ParamField path="id" type="number" required>
+  Identificador único de la categoría a consultar.
+</ParamField>
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Retorna la categoría solicitada.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Objeto categoría.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="id_code_category" type="number">
+      Identificador único de la categoría.
+    </ResponseField>
+
+    <ResponseField name="name" type="string">
+      Nombre de la categoría.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "id_code_category": 1,
+    "name": "Medieval"
+  },
+  "message": "Category found successfully."
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Recurso inexistente
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — La categoría con el `id` indicado no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Category not found` | El `id` indicado no corresponde a ninguna categoría existente. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Category not found"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Alcance acotado:** este endpoint no expone la relación con collectors. Esa información vive en los endpoints de Collectors.
+- **Único error posible:** el único caso de error contemplado es que la categoría no exista (`NO_DATA_FOUND`).

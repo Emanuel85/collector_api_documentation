@@ -1,0 +1,125 @@
+---
+title: "FindOne"
+sidebarTitle: "FindOne"
+description: "Retorna una carta específica dentro de un collector por sus IDs."
+---
+
+## Endpoint
+
+```http
+GET /cards/:cardId/collector/:collectorId
+```
+
+## Descripción
+
+Este endpoint devuelve **una carta específica** perteneciente a un collector, identificada por `cardId` dentro del `collectorId` indicado.
+
+<Info>
+  La respuesta reutiliza la misma forma que [FindAll](/api-reference/cards/find-all), pero acotada a la carta solicitada.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Lee y devuelve una carta puntual, validando que pertenezca al collector referenciado.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún recurso. No expone la información del template ni los valores de atributos de la carta.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** sin modificaciones (solo lectura).
+
+**Restricciones:** sin restricciones de acceso.
+
+## Parámetros de ruta
+
+<ParamField path="cardId" type="number" required>
+  Identificador único de la carta a consultar.
+</ParamField>
+
+<ParamField path="collectorId" type="number" required>
+  Identificador único del collector al que pertenece la carta.
+</ParamField>
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Retorna la carta solicitada.
+</ResponseField>
+
+### Estructura de la respuesta
+
+La estructura del arreglo `data` es la misma que en [FindAll](/api-reference/cards/find-all#estructura-de-la-respuesta), acotada a un único elemento correspondiente a la carta consultada.
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 1,
+      "name": "Gummoss V2",
+      "description": "Nueva descripción",
+      "image_url": "image.png",
+      "create_date": "2026-08-06T20:58:17.866Z",
+      "is_active": false,
+      "rarity": {
+        "id": 9,
+        "name": "Legendaria",
+        "color": "#FFC107",
+        "dropRate": 1,
+        "isDefault": true,
+        "sortOrder": 5
+      }
+    }
+  ],
+  "message": "Card found successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Recursos inexistentes
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — La carta o el collector referenciados no existen.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Card not found` | El `cardId` indicado no corresponde a ninguna carta existente dentro del collector referenciado. |
+| `Collector not found` | El `collectorId` indicado no corresponde a ningún collector existente. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Card not found"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Doble identificación:** el endpoint requiere sí o sí ambos parámetros (`cardId` y `collectorId`). Una carta solo puede consultarse en el contexto del collector al que pertenece.
+- **Estructura consistente con `FindAll`:** la respuesta mantiene la misma forma (arreglo con la carta y su rareza), aunque contenga un único elemento, para facilitar el consumo compartido.
+- **Alcance de datos:** la respuesta expone datos básicos de la carta y su rareza. Los datos del template y los slots de atributos no se incluyen en esta consulta.

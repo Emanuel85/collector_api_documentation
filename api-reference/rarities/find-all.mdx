@@ -1,0 +1,197 @@
+---
+title: "FindAll"
+sidebarTitle: "FindAll"
+description: "Retorna todas las rarezas del sistema, agrupadas por collector."
+---
+
+## Endpoint
+
+```http
+GET /rarities
+```
+
+## Descripción
+
+Este endpoint devuelve **todas las rarezas registradas** en el sistema, agrupadas por el collector al que pertenecen.
+
+<Info>
+  La respuesta está organizada por collector: cada elemento del arreglo `data` representa un collector y contiene el set de rarezas asociadas.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Lee y devuelve todas las rarezas del sistema, agrupadas por collector.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún recurso. Es un endpoint de solo lectura.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** sin modificaciones (solo lectura).
+
+**Restricciones:** sin restricciones de acceso.
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Retorna el listado de rarezas agrupadas por collector.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Arreglo de grupos. Cada grupo agrupa las rarezas de un collector.
+
+  <Expandable title="Propiedades del grupo">
+    <ResponseField name="collector" type="object">
+      Datos mínimos del collector.
+
+      <Expandable title="Propiedades del collector">
+        <ResponseField name="id" type="number">
+          Identificador del collector.
+        </ResponseField>
+
+        <ResponseField name="name" type="string">
+          Nombre del collector.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+
+    <ResponseField name="rarities" type="array">
+      Set de rarezas asociadas al collector.
+
+      <Expandable title="Propiedades de la rareza">
+        <ResponseField name="id" type="number">
+          Identificador de la rareza.
+        </ResponseField>
+
+        <ResponseField name="name" type="string">
+          Nombre de la rareza.
+        </ResponseField>
+
+        <ResponseField name="color" type="string">
+          Color hexadecimal asociado.
+        </ResponseField>
+
+        <ResponseField name="dropRate" type="number">
+          Probabilidad de aparición (porcentaje).
+        </ResponseField>
+
+        <ResponseField name="sortOrder" type="number">
+          Orden de visualización.
+        </ResponseField>
+
+        <ResponseField name="isDefault" type="boolean">
+          Indica si es una rareza por defecto del sistema.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": [
+    {
+      "collector": { "id": 2, "name": "Collector B" },
+      "rarities": [
+        {
+          "id": 1,
+          "name": "Común",
+          "color": "#9E9E9E",
+          "dropRate": 50,
+          "isDefault": false,
+          "sortOrder": 1
+        },
+        {
+          "id": 2,
+          "name": "demasiado",
+          "color": "#9E9E9E",
+          "dropRate": 25,
+          "isDefault": false,
+          "sortOrder": 2
+        }
+      ]
+    },
+    {
+      "collector": { "id": 23, "name": "Digimones 22" },
+      "rarities": [
+        {
+          "id": 1,
+          "name": "Común",
+          "color": "#9E9E9E",
+          "dropRate": 60,
+          "isDefault": true,
+          "sortOrder": 1
+        },
+        {
+          "id": 5,
+          "name": "Legendaria",
+          "color": "#FFC107",
+          "dropRate": 1,
+          "isDefault": true,
+          "sortOrder": 5
+        }
+      ]
+    }
+  ],
+  "message": "Rarities retrieved successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Recurso inexistente
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — No se encontraron datos para completar la consulta.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Category not found` | No se encontraron datos asociados para completar la respuesta. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Category not found"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Agrupamiento por collector:** la respuesta agrupa las rarezas bajo su collector correspondiente, en vez de devolver un listado plano.
+- **Rarezas por defecto:** las rarezas con `isDefault: true` corresponden a plantillas del sistema aplicadas al collector al momento de su creación.
+- **Orden interno:** dentro de cada collector, las rarezas se exponen con su `sortOrder` para preservar el orden de visualización definido por el usuario.
+- **Alcance acotado:** este endpoint no expone información adicional del collector (categorías, `totalCards`, etc.). Para ese detalle usar los endpoints de Collectors.

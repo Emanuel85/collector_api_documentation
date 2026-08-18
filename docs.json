@@ -51,7 +51,28 @@
           {
             "group": "Categories",
             "pages": [
-              "api-reference/categories/create"
+              "api-reference/categories/find-all",
+              "api-reference/categories/find-one",
+              "api-reference/categories/create",
+              "api-reference/categories/update",
+              "api-reference/categories/delete"
+            ]
+          },
+          {
+            "group": "Rarities",
+            "pages": [
+              "api-reference/rarities/find-all",
+              "api-reference/rarities/find-one"
+            ]
+          },
+          {
+            "group": "Cards",
+            "pages": [
+              "api-reference/cards/find-all",
+              "api-reference/cards/find-one",
+              "api-reference/cards/create",
+              "api-reference/cards/update",
+              "api-reference/cards/update-status"
             ]
           }
         ]

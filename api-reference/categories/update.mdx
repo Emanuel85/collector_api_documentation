@@ -1,0 +1,213 @@
+---
+title: "Update"
+sidebarTitle: "Update"
+description: "Actualiza el nombre de una o más categorías en una sola operación."
+---
+
+## Endpoint
+
+```http
+PATCH /categories
+```
+
+## Descripción
+
+Este endpoint permite **actualizar el nombre** de una o más categorías en una sola operación. Cada elemento del arreglo debe indicar el `id` de la categoría y el nuevo `name`.
+
+<Info>
+  Este endpoint está acotado a la actualización del nombre de categorías existentes. No crea ni elimina categorías.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Actualiza el `name` de una o más categorías existentes en una única operación.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No crea nuevas categorías ni elimina las existentes. No modifica las relaciones con collectors.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** el campo `name` de los registros de `categories` referenciados.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Cuerpo de la solicitud
+
+<ParamField body="categories" type="array" required>
+  Arreglo de categorías a actualizar. Debe contener al menos un elemento y no admite `id` duplicados.
+
+  <Expandable title="Propiedades de cada categoría">
+    <ParamField body="id" type="number" required>
+      Identificador de la categoría a modificar. Debe ser un entero mayor a cero.
+    </ParamField>
+
+    <ParamField body="name" type="string" required>
+      Nuevo nombre. Cadena no vacía de hasta 60 caracteres.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Medieval"
+    }
+  ]
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Las categorías se actualizaron correctamente. La respuesta devuelve el listado de cambios aplicados.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Contiene el detalle de los cambios efectivamente aplicados.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="p_changes" type="array">
+      Listado de categorías modificadas con su valor final.
+
+      <Expandable title="Propiedades de la categoría">
+        <ResponseField name="id" type="number">
+          Identificador de la categoría.
+        </ResponseField>
+
+        <ResponseField name="name" type="string">
+          Nombre final tras la actualización.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "p_changes": [
+      {
+        "id": 1,
+        "name": "Medievales"
+      }
+    ]
+  },
+  "message": "Category updated successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Categories are required` | Falta el campo `categories` en el body. |
+| `Categories must be a JSON array` | `categories` no es un arreglo JSON. |
+| `At least one category must be provided` | El arreglo `categories` está vacío. |
+| `Every category must be a JSON object` | Algún elemento de `categories` no es un objeto. |
+| `Every category must contain id and name` | Falta `id` o `name` en alguna categoría. |
+| `Category id must be a number and name must be a string` | Los tipos de `id` o `name` no son correctos. |
+| `Category id must be greater than zero` | Algún `id` no es un entero positivo. |
+| `Category name cannot be empty` | Algún `name` está vacío. |
+| `Category name cannot exceed 60 characters` | Algún `name` supera los 60 caracteres. |
+| `Duplicate category ids are not allowed` | Hay `id` de categoría repetidos en el arreglo. |
+| `No changes detected` | Los valores enviados son idénticos a los actuales, por lo que no hay nada que modificar. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "At least one category must be provided"
+}
+```
+
+### Conflictos de unicidad
+
+Origen: PostgreSQL, `ERRCODE 23505`.
+
+<Warning>
+  **`DUPLICATE_VALUE`** — El payload genera nombres de categoría duplicados.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Duplicate category names are not allowed` | Dos o más categorías del arreglo quedarían con el mismo `name`. |
+| `A category with the same name already exists` | Algún `name` enviado ya está en uso por otra categoría existente. |
+
+```json DUPLICATE_VALUE
+{
+  "status": "error",
+  "code": "DUPLICATE_VALUE",
+  "message": "A category with the same name already exists"
+}
+```
+
+### Recursos inexistentes
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — Alguno de los `id` referenciados no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `One or more categories do not exist` | Uno o más `id` enviados no existen en la base. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "One or more categories do not exist"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Actualización masiva:** el endpoint acepta uno o múltiples elementos en el arreglo `categories`, pero cada elemento debe incluir `id` y `name`.
+- **Alcance acotado:** este endpoint solo modifica el `name` de categorías existentes. No crea, elimina ni gestiona relaciones con collectors.
+- **Detección de cambios:** si los valores enviados coinciden con los actuales, el servicio responde `No changes detected` en lugar de ejecutar un update vacío.
+- **Unicidad de nombre:** los nombres deben ser únicos tanto dentro del arreglo como respecto de las categorías ya existentes. Cualquier colisión produce un error `DUPLICATE_VALUE`.
+- **Sin duplicados de `id`:** el arreglo no admite `id` repetidos.
+- **Respuesta selectiva:** la respuesta expone únicamente las categorías efectivamente modificadas en `p_changes`, para reflejar con precisión el efecto de la operación.

@@ -1,0 +1,208 @@
+---
+title: "Update Status"
+sidebarTitle: "Update Status"
+description: "Habilita o deshabilita una o más cartas de un collector mediante el campo isActive."
+---
+
+## Endpoint
+
+```http
+PATCH /cards/collector/:collectorId/status
+```
+
+<Warning>
+  Confirmar la ruta exacta del endpoint en el servicio. El path se documentó en base a la convención usada por el resto de endpoints de cartas.
+</Warning>
+
+## Descripción
+
+Este endpoint permite **habilitar o deshabilitar** una o múltiples cartas dentro de un collector modificando el campo `isActive`. Es un endpoint dedicado exclusivamente a la gestión del estado de la carta.
+
+<Info>
+  Este endpoint está acotado a la gestión del estado. Para modificar `name`, `description` o `imageUrl` se debe usar el endpoint [Update](/api-reference/cards/update).
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Actualiza el estado `isActive` de una o varias cartas del collector en una única operación.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún otro campo de la carta (nombre, descripción, imagen, rareza, template).
+  </Card>
+</CardGroup>
+
+**Puede modificar:** el campo `isActive` de las cartas asociadas al `collectorId` indicado.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Parámetros de ruta
+
+<ParamField path="collectorId" type="number" required>
+  Identificador único del collector al que pertenecen las cartas.
+</ParamField>
+
+## Cuerpo de la solicitud
+
+<ParamField body="cards" type="array" required>
+  Arreglo de cartas cuyo estado se va a modificar. Debe contener al menos un elemento.
+
+  <Expandable title="Propiedades de cada carta">
+    <ParamField body="id" type="number" required>
+      Identificador de la carta. Debe pertenecer al collector.
+    </ParamField>
+
+    <ParamField body="isActive" type="boolean" required>
+      Nuevo estado de la carta. `true` la habilita, `false` la deshabilita.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "cards": [
+    {
+      "id": 1,
+      "isActive": false
+    },
+    {
+      "id": 2,
+      "isActive": true
+    }
+  ]
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  El estado de las cartas se actualizó correctamente. La respuesta expone el estado final de cada carta.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Contiene el detalle de los estados aplicados.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="p_changes" type="array">
+      Listado de cartas modificadas con su `isActive` final.
+
+      <Expandable title="Propiedades de la carta">
+        <ResponseField name="id" type="number">
+          Identificador de la carta.
+        </ResponseField>
+
+        <ResponseField name="isActive" type="boolean">
+          Estado final tras la actualización.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "p_changes": [
+      {
+        "id": 1,
+        "isActive": false
+      },
+      {
+        "id": 2,
+        "isActive": false
+      }
+    ]
+  },
+  "message": "Cards status updated successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector id is required` | Falta el parámetro `collectorId` en la ruta. |
+| `Cards are required` | Falta el campo `cards` en el body. |
+| `Cards must be a JSON array` | `cards` no es un arreglo JSON. |
+| `At least one card must be provided` | El arreglo `cards` está vacío. |
+| `Every card must be a JSON object` | Algún elemento de `cards` no es un objeto. |
+| `Every card must contain id and isActive` | Falta `id` o `isActive` en alguna de las cartas. |
+| `Card id must be a number and isActive must be boolean` | Los tipos de `id` o `isActive` no son correctos. |
+| `Card id must be greater than zero` | Algún `id` no es un entero positivo. |
+| `Duplicate card ids are not allowed` | Hay `id` de carta repetidos en el arreglo. |
+| `No changes detected` | Los valores enviados coinciden con los actuales, por lo que no hay nada que modificar. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "At least one card must be provided"
+}
+```
+
+### Recursos inexistentes
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — Alguno de los recursos referenciados no existe o no pertenece al collector.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Collector not found` | El `collectorId` indicado no corresponde a ningún collector existente. |
+| `One or more cards do not belong to this collector` | Alguna de las cartas del arreglo no pertenece al collector referenciado. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "One or more cards do not belong to this collector"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Alcance exclusivo del estado:** este endpoint solo modifica `isActive`. Cualquier otro cambio se realiza mediante [Update](/api-reference/cards/update).
+- **Actualización masiva:** admite modificar el estado de múltiples cartas en un solo request.
+- **Pertenencia obligatoria:** todos los `id` enviados deben pertenecer al collector indicado en la ruta.
+- **Estado idempotente:** enviar un `isActive` idéntico al actual de la carta produce el mismo estado sin cambios efectivos.
