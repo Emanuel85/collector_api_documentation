@@ -1,0 +1,246 @@
+---
+title: "Create"
+sidebarTitle: "Create"
+description: "Crea un template de diseño con sus slots de atributos."
+---
+
+## Endpoint
+
+```http
+POST /template
+```
+
+## Descripción
+
+Este endpoint permite **crear un template**, entendido como un diseño que se superpone a la imagen de la carta y que define la cantidad de _slots_ disponibles para los atributos.
+
+<Info>
+  El template actúa como plantilla visual y estructural. `maxAttributes` fija la cantidad máxima de atributos, y `templateSlots` define la posición de cada uno mediante su `sortOrder`.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Persiste el template junto con sus slots, quedando disponible para asignarse a cartas.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No asigna el template a ninguna carta ni gestiona los valores de los atributos. Esa responsabilidad vive en los endpoints de Cards y de atributos.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** crea un registro en `templates` y sus `templateSlots` asociados.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Cuerpo de la solicitud
+
+<ParamField body="name" type="string" required>
+  Nombre del template. Cadena no vacía de hasta 100 caracteres.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Descripción del template. Cadena de hasta 255 caracteres.
+</ParamField>
+
+<ParamField body="imageTemplate" type="string">
+  URL o nombre de archivo del diseño base del template. Cadena de hasta 255 caracteres.
+</ParamField>
+
+<ParamField body="maxAttribute" type="number" required>
+  Cantidad máxima de atributos que soporta el template. Debe ser mayor a cero.
+</ParamField>
+
+<ParamField body="templateSlots" type="array" required>
+  Arreglo de slots del template. Debe contener exactamente la misma cantidad de elementos que `maxAttribute`.
+
+  <Expandable title="Propiedades de cada slot">
+    <ParamField body="sortOrder" type="number" required>
+      Orden del slot dentro del template. Debe ser un entero mayor a cero, menor o igual a `maxAttribute` y único dentro del arreglo.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "name": "Template B",
+  "description": "Template básico de tres atributos",
+  "maxAttribute": 3,
+  "imageTemplate": "https://example.com/template-a.png",
+  "templateSlots": [
+    { "sortOrder": 1 },
+    { "sortOrder": 2 },
+    { "sortOrder": 3 }
+  ]
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  El template se creó correctamente junto con sus slots.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Datos del template recién creado.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="p_template" type="object">
+      Detalle del template creado.
+
+      <Expandable title="Propiedades del template">
+        <ResponseField name="id" type="number">
+          Identificador único del template.
+        </ResponseField>
+
+        <ResponseField name="name" type="string">
+          Nombre del template.
+        </ResponseField>
+
+        <ResponseField name="description" type="string">
+          Descripción del template.
+        </ResponseField>
+
+        <ResponseField name="imageTemplate" type="string">
+          URL o nombre de archivo del diseño base.
+        </ResponseField>
+
+        <ResponseField name="isActive" type="boolean">
+          Indica si el template está activo.
+        </ResponseField>
+
+        <ResponseField name="maxAttributes" type="number">
+          Cantidad máxima de atributos soportados.
+        </ResponseField>
+
+        <ResponseField name="templateSlots" type="array">
+          Slots persistidos con sus identificadores asignados.
+
+          <Expandable title="Propiedades del slot">
+            <ResponseField name="id" type="number">
+              Identificador del slot.
+            </ResponseField>
+
+            <ResponseField name="sortOrder" type="number">
+              Orden del slot dentro del template.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "p_template": {
+      "id": 4,
+      "name": "Template C",
+      "isActive": true,
+      "description": "Template básico de tres atributos",
+      "imageTemplate": "https://example.com/template-a.png",
+      "maxAttributes": 3,
+      "templateSlots": [
+        { "id": 16, "sortOrder": 1 },
+        { "id": 17, "sortOrder": 2 },
+        { "id": 18, "sortOrder": 3 }
+      ]
+    }
+  },
+  "message": "Template created successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Template name is required` | Falta el campo `name`. |
+| `Template name cannot exceed 100 characters` | `name` supera los 100 caracteres. |
+| `Template description cannot exceed 255 characters` | `description` supera los 255 caracteres. |
+| `Template image cannot exceed 255 characters` | `imageTemplate` supera los 255 caracteres. |
+| `maxAttributes must be greater than zero` | `maxAttribute` no es un entero positivo. |
+| `templateSlots must be a JSON array` | `templateSlots` no es un arreglo JSON. |
+| `At least one template slot is required` | El arreglo `templateSlots` está vacío. |
+| `The number of templateSlots must match maxAttributes. Expected: %, received: %` | La cantidad de slots no coincide con `maxAttribute`. |
+| `Every templateSlot must be a JSON object` | Algún elemento de `templateSlots` no es un objeto. |
+| `Every templateSlot must contain sortOrder` | Falta `sortOrder` en algún slot. |
+| `sortOrder must be a number` | Algún `sortOrder` no es un número. |
+| `sortOrder must be greater than zero` | Algún `sortOrder` no es un entero positivo. |
+| `sortOrder cannot be greater than maxAttributes` | Algún `sortOrder` supera el valor de `maxAttribute`. |
+| `Duplicate sortOrder values are not allowed` | Hay valores de `sortOrder` repetidos en el arreglo. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "The number of templateSlots must match maxAttributes. Expected: 3, received: 2"
+}
+```
+
+### Conflictos de unicidad
+
+Origen: PostgreSQL, `ERRCODE 23505`.
+
+<Warning>
+  **`DUPLICATE_VALUE`** — Ya existe un template con el mismo nombre.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `A template with the same name already exists` | Ya existe un template registrado con el mismo `name`. |
+
+```json DUPLICATE_VALUE
+{
+  "status": "error",
+  "code": "DUPLICATE_VALUE",
+  "message": "A template with the same name already exists"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Unicidad por nombre:** no se permiten dos templates con el mismo `name`.
+- **Consistencia `maxAttribute` ↔ `templateSlots`:** la cantidad de slots en el arreglo debe ser exactamente igual a `maxAttribute`. Cualquier discrepancia produce un error `INVALID_DATA`.
+- **Rango de `sortOrder`:** cada `sortOrder` debe ser un entero positivo, único dentro del arreglo y menor o igual a `maxAttribute`.
+- **Estado inicial:** los templates se crean con `isActive: true`. La activación o desactivación posterior queda a cargo de otros endpoints.
+- **Alcance acotado:** este endpoint solo crea la definición del template. La asignación a cartas y la carga de valores de atributos se gestionan desde los endpoints correspondientes.

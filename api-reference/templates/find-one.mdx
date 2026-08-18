@@ -1,0 +1,117 @@
+---
+title: "FindOne"
+sidebarTitle: "FindOne"
+description: "Retorna un template específico por su ID."
+---
+
+## Endpoint
+
+```http
+GET /template/:templateId
+```
+
+## Descripción
+
+Este endpoint devuelve **un template específico** identificado por su `templateId`, incluyendo su set de _slots_ de atributos.
+
+<Info>
+  La respuesta reutiliza la misma forma que [FindAll](/api-reference/templates/find-all), pero acotada al template solicitado.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Lee y devuelve un template puntual con sus slots asociados.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún recurso. Es un endpoint de solo lectura.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** sin modificaciones (solo lectura).
+
+**Restricciones:** sin restricciones de acceso.
+
+## Parámetros de ruta
+
+<ParamField path="templateId" type="number" required>
+  Identificador único del template a consultar.
+</ParamField>
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Retorna el template solicitado.
+</ResponseField>
+
+### Estructura de la respuesta
+
+La estructura del arreglo `data` es la misma que en [FindAll](/api-reference/templates/find-all#estructura-de-la-respuesta), acotada a un único elemento correspondiente al template consultado.
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 3,
+      "name": "Template B",
+      "description": "Template básico de tres atributos",
+      "max_attributes": 3,
+      "image_template": "https://example.com/template-a.png",
+      "is_active": true,
+      "template_slots": [
+        { "id": 6, "sortOrder": 1 },
+        { "id": 7, "sortOrder": 2 },
+        { "id": 8, "sortOrder": 3 }
+      ]
+    }
+  ],
+  "message": "Template found successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Recurso inexistente
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — El template con el `templateId` indicado no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Template not found` | El `templateId` indicado no corresponde a ningún template existente. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Template not found"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Incluye inactivos:** el endpoint devuelve el template incluso si tiene `is_active: false`. La validación de estado, si corresponde, se aplica al momento de asignarlo a una carta.
+- **Estructura consistente con `FindAll`:** la respuesta mantiene la misma forma (arreglo con el template y sus slots), aunque contenga un único elemento, para facilitar el consumo compartido.
+- **Único error posible:** el único caso de error contemplado es que el template no exista (`NO_DATA_FOUND`).

@@ -74,6 +74,16 @@
               "api-reference/cards/update",
               "api-reference/cards/update-status"
             ]
+          },
+          {
+            "group": "Templates",
+            "pages": [
+              "api-reference/templates/find-all",
+              "api-reference/templates/find-one",
+              "api-reference/templates/create",
+              "api-reference/templates/update",
+              "api-reference/templates/update-status"
+            ]
           }
         ]
       }

@@ -1,0 +1,233 @@
+---
+title: "Update"
+sidebarTitle: "Update"
+description: "Actualiza la cantidad de atributos y los slots de un template."
+---
+
+## Endpoint
+
+```http
+PATCH /template/:templateId
+```
+
+## Descripción
+
+Este endpoint permite **actualizar la cantidad de atributos** de un template modificando `maxAttribute` y su set de `templateSlots`. El servicio reemplaza los slots del template por los recibidos en el request.
+
+<Info>
+  Este endpoint está acotado a la estructura del template (atributos y slots). Para habilitar o deshabilitar un template se usa el endpoint [Update Status](/api-reference/templates/update-status).
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Reemplaza los slots del template y actualiza `maxAttribute` para reflejar la nueva cantidad de atributos.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica el estado `isActive` del template ni realiza cambios en las cartas que lo utilicen.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** los campos `maxAttribute` y `templateSlots` del template referenciado.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Parámetros de ruta
+
+<ParamField path="templateId" type="number" required>
+  Identificador único del template a actualizar.
+</ParamField>
+
+## Cuerpo de la solicitud
+
+<ParamField body="maxAttribute" type="number" required>
+  Nueva cantidad máxima de atributos que soportará el template. Debe ser mayor a cero.
+</ParamField>
+
+<ParamField body="templateSlots" type="array" required>
+  Arreglo de slots del template. Debe contener exactamente la misma cantidad de elementos que `maxAttribute`.
+
+  <Expandable title="Propiedades de cada slot">
+    <ParamField body="sortOrder" type="number" required>
+      Orden del slot dentro del template. Debe ser un entero mayor a cero, menor o igual a `maxAttribute` y único dentro del arreglo.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "maxAttribute": 4,
+  "templateSlots": [
+    { "sortOrder": 1 },
+    { "sortOrder": 2 },
+    { "sortOrder": 3 },
+    { "sortOrder": 4 }
+  ]
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  El template se actualizó correctamente. La respuesta devuelve los cambios aplicados junto con los slots resultantes.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Detalle de los cambios efectivamente aplicados.
+
+  <Expandable title="Propiedades">
+    <ResponseField name="p_changes" type="object">
+      Cambios aplicados al template.
+
+      <Expandable title="Propiedades">
+        <ResponseField name="maxAttributes" type="number">
+          Cantidad final de atributos del template.
+        </ResponseField>
+
+        <ResponseField name="templateSlots" type="array">
+          Slots finales tras el reemplazo.
+
+          <Expandable title="Propiedades del slot">
+            <ResponseField name="id" type="number">
+              Identificador del slot.
+            </ResponseField>
+
+            <ResponseField name="sortOrder" type="number">
+              Orden del slot dentro del template.
+            </ResponseField>
+          </Expandable>
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": {
+    "p_changes": {
+      "maxAttributes": 4,
+      "templateSlots": [
+        { "id": 21, "sortOrder": 1 },
+        { "id": 22, "sortOrder": 2 },
+        { "id": 23, "sortOrder": 3 },
+        { "id": 24, "sortOrder": 4 }
+      ]
+    }
+  },
+  "message": "Template updated successfully"
+}
+```
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Template name cannot exceed 100 characters` | `name` supera los 100 caracteres. |
+| `Template description cannot exceed 255 characters` | `description` supera los 255 caracteres. |
+| `Template image cannot exceed 255 characters` | `imageTemplate` supera los 255 caracteres. |
+| `maxAttributes must be greater than zero` | `maxAttribute` no es un entero positivo. |
+| `templateSlots must be a JSON array` | `templateSlots` no es un arreglo JSON. |
+| `At least one template slot is required` | El arreglo `templateSlots` está vacío. |
+| `Every templateSlot must be a JSON object` | Algún elemento de `templateSlots` no es un objeto. |
+| `Every templateSlot must contain sortOrder` | Falta `sortOrder` en algún slot. |
+| `sortOrder must be a number` | Algún `sortOrder` no es un número. |
+| `sortOrder must be greater than zero` | Algún `sortOrder` no es un entero positivo. |
+| `sortOrder cannot be greater than maxAttributes` | Algún `sortOrder` supera el valor de `maxAttribute`. |
+| `Duplicate sortOrder values are not allowed` | Hay valores de `sortOrder` repetidos en el arreglo. |
+| `The number of templateSlots must match maxAttributes. Expected: %, received: %` | La cantidad de slots no coincide con `maxAttribute`. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "The number of templateSlots must match maxAttributes. Expected: 4, received: 3"
+}
+```
+
+### Recurso inexistente
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — El template con el `templateId` indicado no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Template not found` | El `templateId` indicado no corresponde a ningún template existente. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Template not found"
+}
+```
+
+### Conflictos de unicidad
+
+Origen: PostgreSQL, `ERRCODE 23505`.
+
+<Warning>
+  **`DUPLICATE_VALUE`** — El cambio genera un conflicto de unicidad en el template.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `A template with the same name already exists` | Ya existe otro template registrado con el mismo `name`. |
+
+```json DUPLICATE_VALUE
+{
+  "status": "error",
+  "code": "DUPLICATE_VALUE",
+  "message": "A template with the same name already exists"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Reemplazo total de slots:** el arreglo `templateSlots` reemplaza al set actual del template. No existe forma de agregar o quitar slots de forma incremental desde este endpoint.
+- **Consistencia `maxAttribute` ↔ `templateSlots`:** la cantidad de slots del arreglo debe ser exactamente igual a `maxAttribute`. Cualquier discrepancia produce un error `INVALID_DATA`.
+- **Rango de `sortOrder`:** cada `sortOrder` debe ser un entero positivo, único dentro del arreglo y menor o igual a `maxAttribute`.
+- **Alcance acotado:** este endpoint solo modifica la estructura de atributos y slots del template. El estado `isActive` se gestiona desde [Update Status](/api-reference/templates/update-status).
+- **Sin afectar cartas existentes:** este endpoint actúa sobre la definición del template. Las cartas que ya lo usen no se modifican; el impacto se refleja en cargas de atributos posteriores.

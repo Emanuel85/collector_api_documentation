@@ -1,0 +1,143 @@
+---
+title: "FindAll"
+sidebarTitle: "FindAll"
+description: "Retorna la lista completa de templates existentes."
+---
+
+## Endpoint
+
+```http
+GET /template
+```
+
+## Descripción
+
+Este endpoint devuelve **todos los templates** registrados en el sistema, incluyendo su set de _slots_ de atributos.
+
+<Info>
+  El listado incluye tanto templates activos como inactivos. Solo los templates con `is_active: true` pueden asignarse a nuevas cartas.
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Lee y devuelve el listado completo de templates con sus slots asociados.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica ningún recurso. Es un endpoint de solo lectura.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** sin modificaciones (solo lectura).
+
+**Restricciones:** sin restricciones de acceso.
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  Retorna el listado de templates correctamente.
+</ResponseField>
+
+### Estructura de la respuesta
+
+<ResponseField name="status" type="string">
+  Estado de la operación. Valor esperado: `success`.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Mensaje descriptivo del resultado.
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Arreglo de templates.
+
+  <Expandable title="Propiedades del template">
+    <ResponseField name="id" type="number">
+      Identificador único del template.
+    </ResponseField>
+
+    <ResponseField name="name" type="string">
+      Nombre del template.
+    </ResponseField>
+
+    <ResponseField name="description" type="string">
+      Descripción del template.
+    </ResponseField>
+
+    <ResponseField name="image_template" type="string">
+      URL o nombre de archivo del diseño base.
+    </ResponseField>
+
+    <ResponseField name="max_attributes" type="number">
+      Cantidad máxima de atributos soportados.
+    </ResponseField>
+
+    <ResponseField name="is_active" type="boolean">
+      Indica si el template está activo.
+    </ResponseField>
+
+    <ResponseField name="template_slots" type="array">
+      Slots asociados al template.
+
+      <Expandable title="Propiedades del slot">
+        <ResponseField name="id" type="number">
+          Identificador del slot.
+        </ResponseField>
+
+        <ResponseField name="sortOrder" type="number">
+          Orden del slot dentro del template.
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Ejemplo de respuesta
+
+```json 200 OK
+{
+  "status": "success",
+  "data": [
+    {
+      "id": 2,
+      "name": "Template PRUEBA",
+      "description": "Template básico de tres atributos",
+      "max_attributes": 4,
+      "image_template": "https://example.com/template-a.png",
+      "is_active": false,
+      "template_slots": [
+        { "id": 12, "sortOrder": 1 },
+        { "id": 13, "sortOrder": 2 },
+        { "id": 14, "sortOrder": 3 },
+        { "id": 15, "sortOrder": 4 }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Template B",
+      "description": "Template básico de tres atributos",
+      "max_attributes": 3,
+      "image_template": "https://example.com/template-a.png",
+      "is_active": true,
+      "template_slots": [
+        { "id": 6, "sortOrder": 1 },
+        { "id": 7, "sortOrder": 2 },
+        { "id": 8, "sortOrder": 3 }
+      ]
+    }
+  ],
+  "message": "Templates found successfully"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Incluye inactivos:** el listado devuelve todos los templates, sin filtrar por `is_active`. El filtrado, si se requiere, debe realizarse del lado del consumidor.
+- **Slots incluidos:** cada template se expone junto con sus `template_slots`, ordenables por `sortOrder`.
+- **Alcance acotado:** este endpoint no expone la relación con cartas ni con atributos concretos. Solo devuelve la definición del template.

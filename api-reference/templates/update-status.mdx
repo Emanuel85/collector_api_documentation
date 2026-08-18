@@ -1,0 +1,126 @@
+---
+title: "Update Status"
+sidebarTitle: "Update Status"
+description: "Habilita o deshabilita un template mediante el campo isActive."
+---
+
+## Endpoint
+
+```http
+PATCH /template/:templateId/status
+```
+
+## Descripción
+
+Este endpoint permite **habilitar o deshabilitar** un template modificando el campo `isActive`. Es un endpoint dedicado exclusivamente a la gestión del estado y opera **sobre un solo template a la vez**.
+
+<Info>
+  Este endpoint está acotado a la gestión del estado. Para modificar la cantidad de atributos y los slots del template se usa el endpoint [Update](/api-reference/templates/update).
+</Info>
+
+## Responsabilidades y alcance
+
+<CardGroup cols={2}>
+  <Card title="Qué hace" icon="circle-check">
+    Actualiza el estado `isActive` del template referenciado.
+  </Card>
+
+  <Card title="Qué NO hace" icon="circle-xmark">
+    No modifica el `name`, `description`, `imageTemplate`, `maxAttributes` ni los slots del template.
+  </Card>
+</CardGroup>
+
+**Puede modificar:** el campo `isActive` del template referenciado.
+
+**Restricciones:** ver [Consideraciones del servicio](#consideraciones-del-servicio).
+
+## Parámetros de ruta
+
+<ParamField path="templateId" type="number" required>
+  Identificador único del template cuyo estado se va a modificar.
+</ParamField>
+
+## Cuerpo de la solicitud
+
+<ParamField body="isActive" type="boolean" required>
+  Nuevo estado del template. `true` lo habilita, `false` lo deshabilita.
+</ParamField>
+
+### Ejemplo de request
+
+```json
+{
+  "isActive": true
+}
+```
+
+## Respuestas
+
+<ResponseField name="200 Success" type="OK">
+  El estado del template se actualizó correctamente.
+</ResponseField>
+
+## Errores
+
+Todos los errores comparten la misma estructura:
+
+```json
+{
+  "status": "error",
+  "code": "<CODE>",
+  "message": "<mensaje>"
+}
+```
+
+### Validaciones del payload
+
+Origen: PostgreSQL, `ERRCODE 22023`.
+
+<Warning>
+  **`INVALID_DATA`** — El payload no cumple con las reglas de validación del servicio.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Template id is required` | Falta el parámetro `templateId` en la ruta. |
+| `isActive is required` | Falta el campo `isActive` en el body. |
+| `Template already has the requested status` | El template ya se encuentra en el estado solicitado. |
+
+```json INVALID_DATA
+{
+  "status": "error",
+  "code": "INVALID_DATA",
+  "message": "Template already has the requested status"
+}
+```
+
+### Recurso inexistente
+
+Origen: PostgreSQL, `ERRCODE P0002`.
+
+<Warning>
+  **`NO_DATA_FOUND`** — El template con el `templateId` indicado no existe.
+</Warning>
+
+| `message` | Motivo |
+| --- | --- |
+| `Template not found` | El `templateId` indicado no corresponde a ningún template existente. |
+
+```json NO_DATA_FOUND
+{
+  "status": "error",
+  "code": "NO_DATA_FOUND",
+  "message": "Template not found"
+}
+```
+
+## Consideraciones del servicio
+
+<Tip>
+  Reglas de negocio, restricciones y decisiones de diseño que aplican al comportamiento de este endpoint.
+</Tip>
+
+- **Alcance exclusivo del estado:** este endpoint solo modifica `isActive`. Cualquier otro cambio se realiza mediante [Update](/api-reference/templates/update).
+- **Operación unitaria:** el servicio actúa sobre **un único template por request**. No admite actualizaciones masivas.
+- **Sin transiciones redundantes:** si el template ya se encuentra en el estado solicitado, el servicio responde `Template already has the requested status` en lugar de ejecutar una actualización vacía.
+- **Impacto en cartas:** solo los templates con `isActive: true` pueden asignarse a nuevas cartas. Las cartas ya asociadas a un template desactivado se mantienen sin cambios.
